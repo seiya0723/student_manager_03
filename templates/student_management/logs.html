@@ -1,0 +1,12 @@
+
+{% comment %}
+{% for log in logs %}
+<div>{{ log.student.name }}</div>
+{% endfor %}
+{% endcomment %}
+
+{# 連続◯ 日表示をするメソッドを実行(引数が必要なら)埋め込み型のカスタムテンプレートタグを #}
+{% for log in logs %}
+<div class="col-6 border">{{ log.student.name }}{% if log.serial > 1 %}:{{ log.serial }}日連続{% endif %}</div>
+{% endfor %}
+

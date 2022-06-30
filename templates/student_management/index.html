@@ -1,0 +1,154 @@
+{% load static %}
+{% load custom_tag %}
+
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Hello World test!!</title>
+
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+    <!--日本語化用JS-->
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ja.js"></script>
+    <script src="{% static 'student_management/js/script.js' %}"></script>
+
+</head>
+<body>
+    
+    {% hello %}
+
+    {% print_date today %}
+
+
+    {# TIPS:DjangoMessageFrameworkは表示した時に、消える。 #}
+    {% for message in messages %}
+    <li>{{ message }}</li>
+    {% endfor %}
+
+
+    <a href="{% url 'account_logout' %}">ログアウト</a>
+
+    <div class="border p-2">
+
+        <h2>校舎の追加</h2>
+    
+        <form action="" method="POST">
+            {% csrf_token %}
+            <input type="text" name="name" placeholder="校舎名">
+            <textarea name="description" placeholder="備考"></textarea>
+            <input type="submit" value="送信">
+        </form>
+    
+    </div>
+
+    <div class="border p-2">
+        <h2>自習情報の追加</h2>
+
+        <form action="" method="GET">
+            {# TODO:校舎ごとに表示する生徒の選択肢をページ遷移なしで変えたい場合、Ajaxを使う。 #}
+            {# TODO:校舎ごとの絞り込みをする際、フォームクラスでのバリデーションは必須。#}
+            <select name="building">
+                {% for building in buildings %}
+
+                {# 下記if文で、検索時に指定した選択肢を、表示させることができる。素のidではクエリストリングとは型が不一致でselectedが発動しない。#}
+                <option value="{{ building.id }}" {% if request.GET.building == building.str_id %}selected{% endif %}>{{ building.name }}</option>
+                {% endfor %}
+            </select>
+            <input type="submit" value="生徒絞り込み">
+        </form>
+
+
+
+
+
+        <form action="" method="POST">
+            {% csrf_token %}
+            <input id="date" type="date" name="date">
+            <select name="student">
+                {% for student in students %}
+                <option value="{{ student.id }}">{{ student.name }}</option>
+                {% endfor %}
+            </select>
+
+            <input type="submit" value="送信">
+
+        </form>
+    </div>
+    
+    <div>{{ today }} 自習者リスト(全体)</div>
+
+    <div class="row mx-0">
+
+    
+        {% for building in buildings %}
+
+        {# forloop番号の割り算はただのDTLでは実現できないので、4個おきに表示させる場合、ここはカスタムテンプレートタグを使う。 #}
+        {# カスタムテンプレートタグの処理をした結果、表示させるのは下記のラベルのHTMLであるため、埋め込み型カスタムテンプレートタグになる。 #}
+        {% if forloop.counter0 == 0 %}
+        <div class="col-3 border">
+            <div class="text-center">校舎名</div>
+            <div class="text-center">備考</div>
+            <div class="text-center">自習生</div>
+            <div class="text-center">合計</div>
+            <div class="text-center">今週の合計</div>
+        </div>
+        {% endif %}
+
+        <div class="col-3 border">
+            <div class="text-center">{{ building.name }} 在籍生徒数: {{ building.exist_students|length }}</div>
+            <div>{{ building.description|default:"" }}</div>
+            <div class="row">
+                {# {% for log in building.logs %} #}
+
+                {# 連続◯日表示をするメソッドを実行(引数が必要なら)埋め込み型のカスタムテンプレートタグを #}
+                {% comment %}
+                {% for log in building.logs_date_custom %}
+                <div class="col-6 border">{{ log.student.name }}{% if log.serial > 1 %}:{{ log.serial }}日連続{% endif %}</div>
+                {% endfor %}
+                {% endcomment %}
+
+                {% select_date_log_html today building %}
+            </div>
+            {# 合計と在籍生徒数の割合 #}
+            <div class="row border">
+                <div class="col-6">{{ building.logs|length }}名</div>
+                <div class="col-6">{{ building.usage }}%</div>
+            </div>
+            <div class="row border">
+                <div class="col-6">{{ building.weekly_logs|length }}名</div>
+                <div class="col-6">{{ building.weekly_usage }}%</div>
+            </div>
+        </div>
+        {% endfor %}
+
+    </div>
+
+    {% comment %}
+
+    {# 普通のカスタムテンプレートタグでは、引数の指定はできても、HTMLを返すことはできない。#}
+
+    {% for building in buildings %}
+    {#第一引数に日付、第二引数にBuildingのオブジェクトを指定する。#}
+    <div>{% select_date_log yesterday building %}</div>
+    {% endfor %}
+
+    {# 埋め込み型カスタムテンプレートタグを使用して、HTMLを返す。 #}
+
+    {% for building in buildings %}
+    {#第一引数に日付、第二引数にBuildingのオブジェクトを指定する。#}
+    <div class="border">{% select_date_log_html yesterday building %}</div>
+    {% endfor %}
+
+    {% endcomment %}
+
+
+</body>
+</html>
+
